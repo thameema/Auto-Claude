@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, Users, Sparkles, CheckCircle2, AlertCircle, Square } from 'lucide-react';
@@ -230,8 +230,9 @@ export function RoadmapGenerationProgress({
       setLastProgressChange(Date.now());
       setIsStalled(false);
     } else if (!isActivePhase) {
-      // Reset when generation ends
+      // Reset all time-related state when generation ends
       setStartTime(null);
+      setElapsedSeconds(0);
       setIsStalled(false);
     }
   }, [phase, startTime]);
@@ -269,6 +270,15 @@ export function RoadmapGenerationProgress({
     return () => clearInterval(interval);
   }, [startTime]);
 
+  // Track component mount state to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   /**
    * Handle stop button click with error handling and double-click prevention
    */
@@ -281,7 +291,9 @@ export function RoadmapGenerationProgress({
     } catch (err) {
       console.error('Failed to stop generation:', err);
     } finally {
-      setIsStopping(false);
+      if (isMountedRef.current) {
+        setIsStopping(false);
+      }
     }
   };
 
